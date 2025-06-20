@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>3D Elevation Map</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="module">
+      import * as THREE from "https://unpkg.com/three@0.161.0/build/three.module.js";
+      import { OrbitControls } from "https://unpkg.com/three@0.161.0/examples/jsm/controls/OrbitControls.js";
+
+      // ส่วนที่เหลือของ code สามารถใช้ OrbitControls ได้ตรง ๆ
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      camera.position.set(0, 0, 100);
+
+      const renderer = new THREE.WebGLRenderer();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.update();
+
+      // Fetch elevation data from API
+      fetch("http://localhost:3000/api/elevation/all")
+        .then((res) => res.json())
+        .then((data) => {
+          const geometry = new THREE.BufferGeometry();
+          const positions = [];
+          const colors = [];
+
+          data.forEach((point) => {
+            const x = (parseFloat(point.lon) - 101.5) * 10000;
+            const y = (parseFloat(point.lat) - 13.9) * 10000;
+            const z = parseFloat(point.elevation);
+
+            positions.push(x, y, z);
+
+            const color = new THREE.Color();
+            color.setHSL(0.3 - z / 100.0, 1.0, 0.5); // ใช้ elevation กำหนดสี
+            colors.push(color.r, color.g, color.b);
+          });
+
+          geometry.setAttribute(
+            "position",
+            new THREE.Float32BufferAttribute(positions, 3)
+          );
+          geometry.setAttribute(
+            "color",
+            new THREE.Float32BufferAttribute(colors, 3)
+          );
+
+          const material = new THREE.PointsMaterial({
+            size: 2,
+            vertexColors: true,
+          });
+          const points = new THREE.Points(geometry, material);
+          scene.add(points);
+
+          renderer.render(scene, camera);
+        });
+
+      function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+      }
+
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    </script>
+  </body>
+</html>

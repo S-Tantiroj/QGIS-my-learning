@@ -1,0 +1,56 @@
+{
+  "type": "scene",
+  "properties": {
+    "baseExtent": {
+      "cx": 777906.5629542721,
+      "cy": 1542200.742478547,
+      "width": 19044.510140124476,
+      "height": 19044.510140124476,
+      "rotation": 0
+    },
+    "origin": { "x": 777906.5629542721, "y": 1542200.742478547, "z": 0.0 },
+    "zScale": 2.5,
+    "light": "directional"
+  },
+  "layers": [
+    {
+      "type": "layer",
+      "id": 4,
+      "properties": {
+        "name": "ttDEMtiff",
+        "clickable": true,
+        "visible": true,
+        "type": "dem",
+        "clipped": true,
+        "mtlNames": ["map (canvas)"],
+        "mtlIdx": 0
+      },
+      "data": [
+        {
+          "type": "block",
+          "layer": 4,
+          "block": 0,
+          "materials": [
+            {
+              "type": 0,
+              "image": { "url": "./data/index/a0.png" },
+              "ds": 1,
+              "mtlIndex": 0,
+              "useNow": true
+            }
+          ]
+        },
+        {
+          "type": "block",
+          "layer": 4,
+          "block": 0,
+          "width": 19044.510140124476,
+          "height": 19044.510140124476,
+          "translate": [0.0, 0.0, 0],
+          "zScale": 2.5,
+          "geom": { "url": "./data/index/a0.json" }
+        }
+      ]
+    }
+  ]
+}

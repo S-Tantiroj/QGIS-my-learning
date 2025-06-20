@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>tatom</title>
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+    />
+    <base target="_blank" />
+    <link rel="stylesheet" type="text/css" href="./Qgis2threejs.css" />
+    <style type="text/css">
+      #popup,
+      #header,
+      #layerpanel {
+        left: 36px;
+      }
+    </style>
+    <script src="./threejs/three.min.js"></script>
+    <script src="./threejs/OrbitControls.js"></script>
+    <script src="./threejs/ViewHelper.js"></script>
+    <script src="./Qgis2threejs.js"></script>
+  </head>
+  <body>
+    <div id="view">
+      <div id="northarrow"></div>
+      <div id="navigation"></div>
+    </div>
+
+    <!-- popup -->
+    <div id="popup">
+      <div id="closebtn">&times;</div>
+      <div id="popupbar"></div>
+      <div id="popupbody">
+        <div id="popupcontent"></div>
+
+        <!-- query result -->
+        <div id="queryresult">
+          <table id="qr_coords_table">
+            <caption>
+              Clicked coordinates
+              <div id="zoomtopoint" class="action-zoom zoombtn"></div>
+            </caption>
+            <tr>
+              <td id="qr_coords"></td>
+            </tr>
+          </table>
+
+          <table id="qr_layername_table">
+            <caption>
+              Layer
+              <div id="zoomtolayer" class="action-zoom zoombtn"></div>
+            </caption>
+            <tr>
+              <td id="qr_layername"></td>
+            </tr>
+          </table>
+
+          <table id="qr_attrs_table">
+            <caption>
+              Attributes
+            </caption>
+          </table>
+
+          <!-- camera actions and measure tool -->
+          <div id="orbitbtn" class="action-btn action-orbit">Orbit</div>
+          <div id="measurebtn" class="action-btn">Measure distance</div>
+        </div>
+
+        <!-- page info -->
+        <div id="pageinfo">
+          <h1>Current View URL</h1>
+          <div><input id="urlbox" type="text" /></div>
+
+          <h1>Usage</h1>
+          <table id="usage">
+            <tr>
+              <td colspan="2" class="star">Mouse</td>
+            </tr>
+            <tr>
+              <td>Left button + Move</td>
+              <td>Orbit</td>
+            </tr>
+            <tr>
+              <td>Mouse Wheel</td>
+              <td>Zoom</td>
+            </tr>
+            <tr>
+              <td>Right button + Move</td>
+              <td>Pan</td>
+            </tr>
+
+            <tr>
+              <td colspan="2" class="star">Keys</td>
+            </tr>
+            <tr>
+              <td>Arrow keys</td>
+              <td>Move Horizontally</td>
+            </tr>
+            <tr>
+              <td>Shift + Arrow keys</td>
+              <td>Orbit</td>
+            </tr>
+            <tr>
+              <td>Ctrl + Arrow keys</td>
+              <td>Rotate</td>
+            </tr>
+            <tr>
+              <td>Shift + Ctrl + Up / Down</td>
+              <td>Zoom In / Out</td>
+            </tr>
+            <tr>
+              <td>L</td>
+              <td>Toggle Label Visibility</td>
+            </tr>
+            <tr>
+              <td>R</td>
+              <td>Start / Stop Orbit Animation</td>
+            </tr>
+            <tr>
+              <td>W</td>
+              <td>Wireframe Mode</td>
+            </tr>
+            <tr>
+              <td>Shift + R</td>
+              <td>Reset Camera Position</td>
+            </tr>
+            <tr>
+              <td>Shift + S</td>
+              <td>Save Image</td>
+            </tr>
+          </table>
+
+          <h1>About</h1>
+          <div id="about">
+            <img src="./Qgis2threejs.png" /> This page was made with
+            <a href="https://www.qgis.org/">QGIS</a> and
+            <a href="https://github.com/minorua/Qgis2threejs">Qgis2threejs</a>
+            plugin (version 2.8).
+            <div>
+              Powered by <a href="https://threejs.org/">three.js</a>
+              <span id="lib_proj4js">
+                and <a href="https://trac.osgeo.org/proj4js/">Proj4js</a></span
+              >.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- progress bar -->
+    <div id="progress"><div id="progressbar"></div></div>
+
+    <!-- menu -->
+    <div id="toolbtns">
+      <div id="layerbtn"></div>
+      <div id="animbtn" class="hidden"></div>
+      <div id="infobtn"></div>
+    </div>
+
+    <!-- header and footer -->
+    <div id="header"></div>
+    <div id="footer"></div>
+
+    <!-- layer panel -->
+    <div id="layerpanel">
+      <div id="layerlist"></div>
+    </div>
+
+    <!-- animation -->
+    <div id="narrativebox" class="ef1">
+      <div id="narbody"></div>
+      <div id="nextbtn"></div>
+    </div>
+
+    <script>
+      Q3D.Config.allVisible = true;
+
+      var container = document.getElementById("view"),
+        app = Q3D.application,
+        gui = Q3D.gui;
+
+      app.init(container); // initialize viewer
+
+      // load the scene
+      app.loadSceneFile(
+        "./data/index/scene.json",
+        function (scene) {
+          // scene file has been loaded
+          app.start();
+
+          app.viewer.addEventListener("mousedown", function (event) {
+            if (!event.ctrlKey) return; // กด Ctrl + Click เพื่อเปิดใช้งาน
+
+            const mouse = new THREE.Vector2(
+              (event.clientX / window.innerWidth) * 2 - 1,
+              -(event.clientY / window.innerHeight) * 2 + 1
+            );
+
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, app.camera);
+
+            const intersects = raycaster.intersectObjects(
+              app.scene.children,
+              true
+            );
+
+            if (intersects.length > 0) {
+              const point = intersects[0].point;
+
+              // เปลี่ยนจาก local scene coord → world coord (ใช้ origin)
+              const worldX = app.origin.x + point.x;
+              const worldY = app.origin.y - point.y; // อาจต้องกลับ Y
+              const z = point.z;
+
+              // ✅ ส่งไป API
+              fetch("http://localhost:3000/api/3ddata")
+                .then((res) => res.json())
+                .then((data) => {
+                  const geometry = new THREE.BufferGeometry();
+                  const vertices = [];
+                  const colors = [];
+
+                  data.forEach(({ lon, lat, elevation }) => {
+                    // แปลงพิกัดให้เหมาะกับ scale ที่ใช้ใน scene
+                    const x = (lon - 101.5) * 100000; // ปรับ scale
+                    const y = elevation; // ความสูง
+                    const z = (lat - 13.9) * 100000;
+
+                    vertices.push(x, y, z);
+
+                    const color = new THREE.Color(
+                      `hsl(${100 - elevation * 3}, 100%, 50%)`
+                    );
+                    colors.push(color.r, color.g, color.b);
+                  });
+
+                  geometry.setAttribute(
+                    "position",
+                    new THREE.Float32BufferAttribute(vertices, 3)
+                  );
+                  geometry.setAttribute(
+                    "color",
+                    new THREE.Float32BufferAttribute(colors, 3)
+                  );
+
+                  const material = new THREE.PointsMaterial({
+                    size: 2,
+                    vertexColors: true,
+                  });
+                  const points = new THREE.Points(geometry, material);
+                  scene.add(points);
+                });
+            }
+          });
+        },
+        function (scene) {
+          // all relevant files have been loaded
+        }
+      );
+    </script>
+  </body>
+</html>
